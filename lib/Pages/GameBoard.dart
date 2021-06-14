@@ -14,13 +14,24 @@ class _GameBoardState extends State<GameBoard> {
 
   int row = 0;
   int size = 0;
+  ValueNotifier<List> originalList = ValueNotifier([]);
+  ValueNotifier<List> randomList = ValueNotifier([]);
 
   @override
   void initState() {
     // TODO: implement initState
     row = widget.row;
     size = row*row;
+    matrixGenerator();
     super.initState();
+  }
+
+  matrixGenerator(){
+    for(int i=1; i<=size;i++){
+      originalList.value.add(i);
+      randomList.value.add(i);
+    }
+    randomList.value.shuffle();
   }
 
   @override
@@ -131,10 +142,11 @@ class _GameBoardState extends State<GameBoard> {
                       crossAxisSpacing: ScreenUtil().setWidth(5),
                       mainAxisSpacing: ScreenUtil().setHeight(5)
                     ),
-                    itemCount: size,
+                    itemCount: randomList.value.length,
                     itemBuilder: (context,index){
-                      var value = index +1;
-                      if(index==size-1){
+                      ValueNotifier<int> data = ValueNotifier(0);
+                      data.value = randomList.value[index];
+                      if(randomList.value[index]==(randomList.value.length)){
                         return Container();
                       }
                       return Container(
@@ -145,11 +157,28 @@ class _GameBoardState extends State<GameBoard> {
                             fit: BoxFit.cover
                           )
                         ),
-                        child: Center(
-                          child: FittedBox(
-                            fit: BoxFit.none,
-                            child: Text("$value",
-                              style: boardStyle.copyWith(fontSize: ScreenUtil().setSp(400)),),
+                        child: InkWell(
+                          onTap: (){
+                            moveValidation(index);
+                          },
+                          child: Draggable(
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.none,
+                                child: ValueListenableBuilder(
+                                  valueListenable: data,
+                                  builder: (context,value,widget){
+                                    return Text(value.toString(),
+                                      style: boardStyle.copyWith(fontSize: ScreenUtil().setSp(400)),);
+                                  },
+                                ),
+                              ),
+                            ),
+                            feedback: Container(),
+                            childWhenDragging: Container(),
+                            onDragStarted: (){
+                              moveValidation(index);
+                            },
                           ),
                         )
                       );
@@ -162,5 +191,130 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
+  moveValidation(int index){
+    int temp = 0;
+    int length = randomList.value.length;
+    var _up = index-row;
+    var _down = index + row;
+    var _forward = index +1;
+    var _backward = index - 1;
+    int maxValue = length;
+
+    if(index == 0){
+      // top left item
+      print("index : $index");
+      if(randomList.value[_forward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_forward];
+        randomList.value[_forward] = temp;
+      }else if(randomList.value[_down]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_down];
+        randomList.value[_down] = temp;
+      }
+
+    }else if(index == (row-1)){
+      // top right item
+      print("index : $index");
+      if(randomList.value[_backward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_forward];
+        randomList.value[_forward] = temp;
+      }else if(randomList.value[_down]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_down];
+        randomList.value[_down] = temp;
+      }
+    }else if((index + row)%row==0){
+      //most left column
+      print("index : $index");
+      if(randomList.value[_forward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_forward];
+        randomList.value[_forward] = temp;
+      }else if(randomList.value[_down]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_down];
+        randomList.value[_down] = temp;
+      }else if(randomList.value[_up]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_up];
+        randomList.value[_up] = temp;
+      }
+    }else if((index - (row-1))%row==0) {
+      // most right column
+      print("index : $index");
+       if(randomList.value[_down]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_down];
+        randomList.value[_down] = temp;
+      }else if(randomList.value[_up]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_up];
+        randomList.value[_up] = temp;
+      }else if(randomList.value[_backward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_backward];
+        randomList.value[_backward] = temp;
+      }
+    }else if((index>0)&(index<row-1)){
+      // most top row
+      print("index : $index");
+      if(randomList.value[_forward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_forward];
+        randomList.value[_forward] = temp;
+      }else if(randomList.value[_down]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_down];
+        randomList.value[_down] = temp;
+      }else if(randomList.value[_backward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_backward];
+        randomList.value[_backward] = temp;
+      }
+    }else if((index>(length-row-1))&(index<length)){
+      // most bottom row
+      print("index : $index");
+      if(randomList.value[_forward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_forward];
+        randomList.value[_forward] = temp;
+      }else if(randomList.value[_up]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_up];
+        randomList.value[_up] = temp;
+      }else if(randomList.value[_backward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_backward];
+        randomList.value[_backward] = temp;
+      }
+    }else if(index == (length-row+1)){
+      //left bottom item
+      print("index : $index");
+      if(randomList.value[_forward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_forward];
+        randomList.value[_forward] = temp;
+      }else if(randomList.value[_up]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_up];
+        randomList.value[_up] = temp;
+      }
+    }else if(index == length){
+      // right bottom item
+       if(randomList.value[_up]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_up];
+        randomList.value[_up] = temp;
+      }else if(randomList.value[_backward]==maxValue){
+        temp = randomList.value[index];
+        randomList.value[index] = randomList.value[_backward];
+        randomList.value[_backward] = temp;
+      }
+    }else{
+      print("index : $index");
+    }
+  }
 
 }
