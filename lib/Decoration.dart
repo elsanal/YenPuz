@@ -38,3 +38,15 @@ TextStyle boardTimerStyle = GoogleFonts.monoton(
     fontSize: ScreenUtil().setSp(40),
     color: Colors.blueGrey[100]
 );
+
+TextStyle alertFinishedStyle = GoogleFonts.shadowsIntoLight(
+    fontWeight: FontWeight.w400,
+    fontSize: ScreenUtil().setSp(60),
+    color: Colors.blueGrey[100]
+);
+
+TextStyle alertFinishedTitleStyle = GoogleFonts.monoton(
+    fontWeight: FontWeight.bold,
+    fontSize: ScreenUtil().setSp(60),
+    color: Colors.blueGrey[100]
+);

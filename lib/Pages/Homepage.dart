@@ -20,7 +20,7 @@ class _HomepageState extends State<Homepage> {
       appBar: AppBar(
         title: Text("YenPuz", style:homeStyle),
         centerTitle: true,
-        backgroundColor: Colors.brown.shade600,
+        backgroundColor: Colors.red[900],
       ),
       body: Container(
         height:height,

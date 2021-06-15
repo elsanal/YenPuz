@@ -1,10 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:soundpool/soundpool.dart';
 import 'package:yenpuz/Decoration.dart';
+import 'package:yenpuz/Logic/gameCompleted.dart';
+import 'package:yenpuz/Logic/gameLogic.dart';
+import 'package:yenpuz/Notifications/Sound.dart';
+import 'package:yenpuz/Notifications/Timer.dart';
+import 'package:yenpuz/Notifications/onCompleted.dart';
 
 class GameBoard extends StatefulWidget {
   int row;
-  GameBoard(this.row);
+  double fontSize;
+  GameBoard({required this.row, required this.fontSize});
 
   @override
   _GameBoardState createState() => _GameBoardState();
@@ -12,26 +23,48 @@ class GameBoard extends StatefulWidget {
 
 class _GameBoardState extends State<GameBoard> {
 
-  int row = 0;
-  int size = 0;
+  int row = 0; int size = 0;
+  double fontSize = 0;
   ValueNotifier<List> originalList = ValueNotifier([]);
   ValueNotifier<List> randomList = ValueNotifier([]);
+  ValueNotifier<bool> isFinished = ValueNotifier(false);
+
+  int newIndex = 0; int steps = 0; String time = '';
+  int seconds = 0; int minutes = 0; int hours = 0;
+  Timer _timer = Timer(Duration(seconds: 0),(){});
+  Soundpool _soundPool = Soundpool.fromOptions(
+      options: SoundpoolOptions(streamType: StreamType.ring));
+  late Future<int> _soundId ;
+
 
   @override
   void initState() {
     // TODO: implement initState
     row = widget.row;
     size = row*row;
-    matrixGenerator();
+    fontSize = widget.fontSize;
+    _matrixGenerator();
+    startTimer();
+    _soundId = loadSound();
     super.initState();
   }
 
-  matrixGenerator(){
+  void dispose(){
+    _timer.cancel();
+    super.dispose();
+  }
+
+  _matrixGenerator(){
     for(int i=1; i<=size;i++){
       originalList.value.add(i);
       randomList.value.add(i);
     }
     randomList.value.shuffle();
+  }
+
+  Future<int> loadSound() async {
+    var asset = await rootBundle.load("assets/clicked.mp3");
+    return await _soundPool.load(asset);
   }
 
   @override
@@ -81,7 +114,7 @@ class _GameBoardState extends State<GameBoard> {
                         right: ScreenUtil().setHeight(40),
                       ),
                       color: Colors.brown,
-                      child: Text("Matrix",style: boardTileStyle,),),
+                      child: Text("$row x $row",style: boardTileStyle,),),
                     Card(
                       child: new Container(
                         padding: EdgeInsets.only(
@@ -91,7 +124,7 @@ class _GameBoardState extends State<GameBoard> {
                           right: ScreenUtil().setHeight(40),
                         ),
                         color: Colors.brown,
-                        child: Text("Steps",style: boardTileStyle,),),
+                        child: Text("steps : $steps",style: boardTileStyle,),),
                     )
                   ],
                 ),
@@ -99,22 +132,39 @@ class _GameBoardState extends State<GameBoard> {
             ),
             Positioned(
                 top: ScreenUtil().setHeight(200),
-                // left: ScreenUtil().setWidth(0),
-                // right: ScreenUtil().setWidth(0),
                 child: Container(
                   width: width,
                   child: CircleAvatar(
                     radius: ScreenUtil().setWidth(150),
                     backgroundColor: Colors.redAccent[200],
-                    child: Column(
+                    child: !isFinished.value?Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         new SizedBox(height: ScreenUtil().setHeight(20),),
                         new Text("Timer",style: boardTimerStyle,),
                         new SizedBox(height: ScreenUtil().setHeight(60),),
-                        new Text("98 : 12 : 34",style: boardTimerStyle,)
+                        new Text(_timeFormat,style: boardTimerStyle,),
                       ],
+                    ):InkWell(
+                      onTap: (){
+
+                        setState(() {
+                          randomList.value.clear();
+                          originalList.value.clear();
+                          isFinished.value = false;
+                        });
+                        _matrixGenerator();
+                        startTimer();
+                        print(randomList.value);
+                      },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                         new Text("Replay",style: boardTimerStyle,)
+                        ],
+                      ),
                     ),
                   ),
                 )
@@ -144,43 +194,37 @@ class _GameBoardState extends State<GameBoard> {
                     ),
                     itemCount: randomList.value.length,
                     itemBuilder: (context,index){
-                      ValueNotifier<int> data = ValueNotifier(0);
-                      data.value = randomList.value[index];
+
                       if(randomList.value[index]==(randomList.value.length)){
                         return Container();
                       }
-                      return Container(
-                        padding: EdgeInsets.all(0),
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage("assets/wood_wp1.jpeg"),
-                            fit: BoxFit.cover
-                          )
-                        ),
-                        child: InkWell(
-                          onTap: (){
-                            moveValidation(index);
-                          },
-                          child: Draggable(
-                            child: Center(
-                              child: FittedBox(
-                                fit: BoxFit.none,
-                                child: ValueListenableBuilder(
-                                  valueListenable: data,
-                                  builder: (context,value,widget){
-                                    return Text(value.toString(),
-                                      style: boardStyle.copyWith(fontSize: ScreenUtil().setSp(400)),);
-                                  },
-                                ),
+                      return InkWell(
+                        onTap: (){
+                        _stateController(index);
+                        },
+                        child: Draggable(
+                          data: index,
+                          child: Container(
+                            decoration: BoxDecoration(
+                                image: DecorationImage(
+                                    image: AssetImage("assets/wood_wp1.jpeg"),
+                                    fit: BoxFit.cover
+                                )
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.none,
+                              child: Center(
+                                child: Text(randomList.value[index].toString(),
+                                  style: boardStyle.copyWith(fontSize: ScreenUtil().setSp(fontSize)),),
                               ),
                             ),
-                            feedback: Container(),
-                            childWhenDragging: Container(),
-                            onDragStarted: (){
-                              moveValidation(index);
-                            },
                           ),
-                        )
+                          feedback: Container(),
+                          childWhenDragging: Container(),
+                          onDragStarted: (){
+                           _stateController(index);
+                          },
+                        ),
                       );
                     }),
               ),
@@ -191,129 +235,71 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
-  moveValidation(int index){
+  /// Make the exchange of the items
+  void _replace(int index, int newIndex){
     int temp = 0;
-    int length = randomList.value.length;
-    var _up = index-row;
-    var _down = index + row;
-    var _forward = index +1;
-    var _backward = index - 1;
-    int maxValue = length;
+    setState(() {
+      temp = randomList.value[index];
+      randomList.value[index] = randomList.value[newIndex];
+      randomList.value[newIndex] = temp;
+    });
+  }
 
-    if(index == 0){
-      // top left item
-      print("index : $index");
-      if(randomList.value[_forward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_forward];
-        randomList.value[_forward] = temp;
-      }else if(randomList.value[_down]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_down];
-        randomList.value[_down] = temp;
-      }
+  /// Start the up counter
+ String _timeFormat = '00:00:00';
+  String hr = '00';
+  String mn = '00';
+  String ss = '00';
+  startTimer() {
+    const oneSec = const Duration(seconds: 1);
+    _timer = new Timer.periodic(
+      oneSec,
+          (Timer timer) {
+        setState(() {
+          if (seconds < 0) {
+            timer.cancel();
+          } else {
+            seconds = seconds + 1;
+            if (seconds > 59) {
+              minutes += 1;
+              seconds = 0;
+              if (minutes > 59) {
+                hours += 1;
+                minutes = 0;
+              }
+            }
+          }
+          hr = hours<10?"0$hours:":"$hours:";
+          mn = minutes<10?"0$minutes:":"$minutes:";
+          ss = seconds<10?"0$seconds":"$seconds";
+          _timeFormat = hr + mn + ss;
+        });
+      },
+    );
+  }
 
-    }else if(index == (row-1)){
-      // top right item
-      print("index : $index");
-      if(randomList.value[_backward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_forward];
-        randomList.value[_forward] = temp;
-      }else if(randomList.value[_down]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_down];
-        randomList.value[_down] = temp;
-      }
-    }else if((index + row)%row==0){
-      //most left column
-      print("index : $index");
-      if(randomList.value[_forward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_forward];
-        randomList.value[_forward] = temp;
-      }else if(randomList.value[_down]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_down];
-        randomList.value[_down] = temp;
-      }else if(randomList.value[_up]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_up];
-        randomList.value[_up] = temp;
-      }
-    }else if((index - (row-1))%row==0) {
-      // most right column
-      print("index : $index");
-       if(randomList.value[_down]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_down];
-        randomList.value[_down] = temp;
-      }else if(randomList.value[_up]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_up];
-        randomList.value[_up] = temp;
-      }else if(randomList.value[_backward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_backward];
-        randomList.value[_backward] = temp;
-      }
-    }else if((index>0)&(index<row-1)){
-      // most top row
-      print("index : $index");
-      if(randomList.value[_forward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_forward];
-        randomList.value[_forward] = temp;
-      }else if(randomList.value[_down]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_down];
-        randomList.value[_down] = temp;
-      }else if(randomList.value[_backward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_backward];
-        randomList.value[_backward] = temp;
-      }
-    }else if((index>(length-row-1))&(index<length)){
-      // most bottom row
-      print("index : $index");
-      if(randomList.value[_forward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_forward];
-        randomList.value[_forward] = temp;
-      }else if(randomList.value[_up]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_up];
-        randomList.value[_up] = temp;
-      }else if(randomList.value[_backward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_backward];
-        randomList.value[_backward] = temp;
-      }
-    }else if(index == (length-row+1)){
-      //left bottom item
-      print("index : $index");
-      if(randomList.value[_forward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_forward];
-        randomList.value[_forward] = temp;
-      }else if(randomList.value[_up]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_up];
-        randomList.value[_up] = temp;
-      }
-    }else if(index == length){
-      // right bottom item
-       if(randomList.value[_up]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_up];
-        randomList.value[_up] = temp;
-      }else if(randomList.value[_backward]==maxValue){
-        temp = randomList.value[index];
-        randomList.value[index] = randomList.value[_backward];
-        randomList.value[_backward] = temp;
-      }
-    }else{
-      print("index : $index");
+  /// Check the different conditions
+  _stateController(int index)async{
+    setState(() {
+      newIndex = moveValidation(index, row, randomList);
+    });
+    _replace(index, newIndex);
+    bool isCompleted = completed(context,size, randomList, originalList);
+    if(isCompleted){
+      _timer.cancel();
+      Future.delayed(Duration(milliseconds: 800),(){
+        finished(context, _timeFormat, steps.toString(),_timeFormat);
+        setState(() {
+          isFinished.value = true;
+
+        });
+      });
+    }
+    if(index!=newIndex){
+      setState(() {
+        steps+=1;
+      });
+      await Sound(soundId: _soundId, soundpool: _soundPool,).playSound();
     }
   }
 
