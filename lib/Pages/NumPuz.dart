@@ -34,7 +34,7 @@ class _NumPuzState extends State<NumPuz> {
                 crossAxisCount: 2,
                 crossAxisSpacing: ScreenUtil().setWidth(20),
                 mainAxisSpacing: ScreenUtil().setHeight(20),
-                childAspectRatio: 5/2
+                childAspectRatio: 3
               ),
               itemCount: 8,
               itemBuilder: (context,index){
@@ -42,7 +42,7 @@ class _NumPuzState extends State<NumPuz> {
                 return InkWell(
                   onTap: (){
                     Navigator.push(context, new MaterialPageRoute(
-                        builder: (context)=>GameBoard(row: row,fontSize: (1000/row),)));
+                        builder: (context)=>GameBoard(row: row,fontSize: (900/row),)));
                   },
                     child: matrix(index+3));
               }

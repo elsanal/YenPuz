@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "140356457063",
+    "project_id": "yenpuz-aaca7",
+    "storage_bucket": "yenpuz-aaca7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140356457063:android:1f311cd8156a9902defac2",
+        "android_client_info": {
+          "package_name": "com.example.yenpuz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "140356457063-udlpp0o0ls1sl9a1ri3l7pr4dp74apkp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbk35Bofy6OgWjlOlEbKLFqYM7TfZ8a7Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "140356457063-udlpp0o0ls1sl9a1ri3l7pr4dp74apkp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

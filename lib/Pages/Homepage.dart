@@ -12,6 +12,8 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+
+  int _itemCount = 9;
   @override
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
@@ -36,20 +38,37 @@ class _HomepageState extends State<Homepage> {
           )
         ),
         child: GridView(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: ScreenUtil().setWidth(10),
-        mainAxisSpacing: ScreenUtil().setHeight(10)
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: ScreenUtil().setWidth(10),
+          mainAxisSpacing: ScreenUtil().setHeight(10)
         ),
-        children: [
+         children: [
+          Center(child: new Text("NumPuz",style: homeStyle.copyWith(color: Colors.white),)),
+          Center(child: new Text("ImPuz",style: homeStyle.copyWith(color: Colors.white),)),
+
           new Card(
+            elevation: 5.0,
             child: InkWell(
               onTap: (){
                Navigator.push(context, new MaterialPageRoute(
                    builder: (context)=>NumPuz()));
               },
               child: Center(
-                  child: Text("NumPuz",style: homeStyle,)),
+                  child: GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 1,
+                      crossAxisSpacing: 1
+                    ),
+                    itemCount: _itemCount,
+                    itemBuilder: (context, index) {
+                      if(index == 8){return Container(color: Colors.brown,);}
+                      return Container(
+                        color: Colors.red,
+                          child: Center(child: Text("${index+1}",style: homeStyle,)));
+                    }
+                  )),
             ),),
           new Card(
             child: InkWell(

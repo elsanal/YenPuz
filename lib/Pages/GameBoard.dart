@@ -51,6 +51,7 @@ class _GameBoardState extends State<GameBoard> {
 
   void dispose(){
     _timer.cancel();
+    _soundPool.dispose();
     super.dispose();
   }
 
@@ -220,7 +221,21 @@ class _GameBoardState extends State<GameBoard> {
                             ),
                           ),
                           feedback: Container(),
-                          childWhenDragging: Container(),
+                          childWhenDragging: Container(
+                            decoration: BoxDecoration(
+                                image: DecorationImage(
+                                    image: AssetImage("assets/wood_wp1.jpeg"),
+                                    fit: BoxFit.cover
+                                )
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.none,
+                              child: Center(
+                                child: Text(randomList.value[index].toString(),
+                                  style: boardStyle.copyWith(fontSize: ScreenUtil().setSp(fontSize)),),
+                              ),
+                            ),
+                          ),
                           onDragStarted: (){
                            _stateController(index);
                           },
