@@ -10,10 +10,10 @@ Gradient homeGrad = new LinearGradient(
       Colors.deepOrange,Colors.brown,]
 );
 
-TextStyle homeStyle = GoogleFonts.permanentMarker(
+TextStyle homeStyle = GoogleFonts.aladin(
       fontSize: ScreenUtil().setSp(100),
       fontWeight: FontWeight.w600,
-      color: Colors.black
+      color: Colors.white
 );
 
 TextStyle numPuzStyle = GoogleFonts.permanentMarker(

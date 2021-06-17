@@ -4,7 +4,7 @@ import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:yenpuz/Decoration.dart';
 
 
- finished(BuildContext context,String time, String steps, String bestTime){
+ finished(BuildContext context,String newDuration, int steps, String bestDuration){
    var height = MediaQuery.of(context).size.height;
    var width = MediaQuery.of(context).size.width;
   return Alert(
@@ -30,9 +30,9 @@ import 'package:yenpuz/Decoration.dart';
         children: [
           new Icon(Icons.emoji_events_sharp,
             size: ScreenUtil().setHeight(400),color: Colors.amber,),
-          new Text("Steps : "+steps,style: alertFinishedStyle,),
-          new Text("Time : "+time,style: alertFinishedStyle,),
-          new Text("Best time : "+bestTime,style: alertFinishedStyle,),
+          new Text("Steps : "+steps.toString(),style: alertFinishedStyle,),
+          new Text("Time : "+newDuration.toString(),style: alertFinishedStyle,),
+          new Text("Best time : "+bestDuration.toString(),style: alertFinishedStyle,),
         ],
       ),
     ),

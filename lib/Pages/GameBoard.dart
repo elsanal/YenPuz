@@ -1,10 +1,14 @@
+//@dart=2.9
 import 'dart:async';
-
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:soundpool/soundpool.dart';
+import 'package:yenpuz/Database/admob.dart';
+import 'package:yenpuz/Database/gameClass.dart';
+import 'package:yenpuz/Database/sqflite.dart';
 import 'package:yenpuz/Decoration.dart';
 import 'package:yenpuz/Logic/gameCompleted.dart';
 import 'package:yenpuz/Logic/gameLogic.dart';
@@ -13,9 +17,9 @@ import 'package:yenpuz/Notifications/Timer.dart';
 import 'package:yenpuz/Notifications/onCompleted.dart';
 
 class GameBoard extends StatefulWidget {
-  int row;
   double fontSize;
-  GameBoard({required this.row, required this.fontSize});
+  gameInfo score;
+  GameBoard({this.fontSize, this.score});
 
   @override
   _GameBoardState createState() => _GameBoardState();
@@ -24,28 +28,34 @@ class GameBoard extends StatefulWidget {
 class _GameBoardState extends State<GameBoard> {
 
   int row = 0; int size = 0;
+  int bestDuration = 0;
   double fontSize = 0;
+   gameInfo score;
   ValueNotifier<List> originalList = ValueNotifier([]);
   ValueNotifier<List> randomList = ValueNotifier([]);
   ValueNotifier<bool> isFinished = ValueNotifier(false);
+  ValueNotifier<bool> isMuted = ValueNotifier(false);
 
   int newIndex = 0; int steps = 0; String time = '';
   int seconds = 0; int minutes = 0; int hours = 0;
   Timer _timer = Timer(Duration(seconds: 0),(){});
   Soundpool _soundPool = Soundpool.fromOptions(
       options: SoundpoolOptions(streamType: StreamType.ring));
-  late Future<int> _soundId ;
+   Future<int> _soundId ;
 
 
   @override
   void initState() {
     // TODO: implement initState
-    row = widget.row;
+    score = widget.score;
+    row = score.row;
     size = row*row;
+    bestDuration = score.duration;
     fontSize = widget.fontSize;
     _matrixGenerator();
     startTimer();
     _soundId = loadSound();
+    Admob().myBannerAd..load();
     super.initState();
   }
 
@@ -72,12 +82,15 @@ class _GameBoardState extends State<GameBoard> {
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
-    return SafeArea(
-      child: Scaffold(
-        body: Container(
+    Admob().myBannerAd..show(anchorType: AnchorType.bottom);
+    return Scaffold(
+      backgroundColor: Colors.red[900],
+      body: SafeArea(
+        child: Container(
           height: height,
           width: width,
           decoration: BoxDecoration(
+            color: Colors.red,
             image: DecorationImage(
               image: AssetImage("assets/wood_wp.jpeg"),
               fit: BoxFit.cover
@@ -97,6 +110,7 @@ class _GameBoardState extends State<GameBoard> {
                     new InkWell(
                       onTap:()=>Navigator.of(context).pop(true),
                       child: Card(
+                        color: Colors.red.withOpacity(0.3),
                         child: Container(
                           padding: EdgeInsets.only(
                             top: ScreenUtil().setHeight(20),
@@ -104,19 +118,10 @@ class _GameBoardState extends State<GameBoard> {
                             left: ScreenUtil().setHeight(40),
                             right: ScreenUtil().setHeight(40),
                           ),
-                            color: Colors.brown,
                             child: new Text("Back",style: boardTileStyle,)),
                       ),),
-                    new Container(
-                      padding: EdgeInsets.only(
-                        top: ScreenUtil().setHeight(20),
-                        bottom: ScreenUtil().setHeight(20),
-                        left: ScreenUtil().setHeight(40),
-                        right: ScreenUtil().setHeight(40),
-                      ),
-                      color: Colors.brown,
-                      child: Text("$row x $row",style: boardTileStyle,),),
                     Card(
+                      color: Colors.red.withOpacity(0.3),
                       child: new Container(
                         padding: EdgeInsets.only(
                           top: ScreenUtil().setHeight(20),
@@ -124,7 +129,17 @@ class _GameBoardState extends State<GameBoard> {
                           left: ScreenUtil().setHeight(40),
                           right: ScreenUtil().setHeight(40),
                         ),
-                        color: Colors.brown,
+                        child: Text("$row x $row",style: boardTileStyle,),),
+                    ),
+                    Card(
+                      color: Colors.red.withOpacity(0.3),
+                      child: new Container(
+                        padding: EdgeInsets.only(
+                          top: ScreenUtil().setHeight(20),
+                          bottom: ScreenUtil().setHeight(20),
+                          left: ScreenUtil().setHeight(40),
+                          right: ScreenUtil().setHeight(40),
+                        ),
                         child: Text("steps : $steps",style: boardTileStyle,),),
                     )
                   ],
@@ -169,6 +184,38 @@ class _GameBoardState extends State<GameBoard> {
                     ),
                   ),
                 )
+            ),
+            Positioned(
+              top: ScreenUtil().setHeight(180),
+              right: ScreenUtil().setHeight(45),
+              child: Card(
+                color: Colors.red.withOpacity(0.3),
+                child: Container(
+                  padding: EdgeInsets.only(
+                    top: ScreenUtil().setHeight(20),
+                    bottom: ScreenUtil().setHeight(20),
+                    left: ScreenUtil().setHeight(40),
+                    right: ScreenUtil().setHeight(40),
+                  ),
+                  child: isMuted.value?InkWell(
+                    onTap: ()async{
+                      setState(() {
+                        isMuted.value = false;
+                      });
+                      await Sound(soundId: _soundId, soundpool: _soundPool,).updateVolume(1.0);
+                    },
+                    child: Icon(Icons.volume_off,size: ScreenUtil().setHeight(80),color: Colors.white,),
+                  ):InkWell(
+                    onTap: ()async{
+                      setState(() {
+                        isMuted.value = true;
+                      });
+                      await Sound(soundId: _soundId, soundpool: _soundPool,).updateVolume(0.0);
+                    },
+                    child: Icon(Icons.volume_up,size: ScreenUtil().setHeight(80),color: Colors.white,),
+                  ),
+                ),
+              )
             ),
 
             Positioned(
@@ -246,7 +293,7 @@ class _GameBoardState extends State<GameBoard> {
             )
           ],),
         ),
-      )
+      ),
     );
   }
 
@@ -262,6 +309,7 @@ class _GameBoardState extends State<GameBoard> {
 
   /// Start the up counter
  String _timeFormat = '00:00:00';
+  int newDuration = 0;
   String hr = '00';
   String mn = '00';
   String ss = '00';
@@ -292,6 +340,23 @@ class _GameBoardState extends State<GameBoard> {
       },
     );
   }
+  
+  /// time format
+  
+  String _formatTime(int duration){
+    var hr ;
+    var mn ;
+    var ss ;
+    hr = (duration~/360).toInt();
+    mn = ((duration - (hr*360))~/60).toInt();
+    ss = duration - ((mn*60) + (hr*360));
+    
+    hr = hr<10?"0$hr:":"$hr:";
+    mn = mn<10?"0$mn:":"$mn:";
+    ss = ss<10?"0$ss":"$ss";
+    
+    return (hr + mn + ss);
+  }
 
   /// Check the different conditions
   _stateController(int index)async{
@@ -302,11 +367,21 @@ class _GameBoardState extends State<GameBoard> {
     bool isCompleted = completed(context,size, randomList, originalList);
     if(isCompleted){
       _timer.cancel();
-      Future.delayed(Duration(milliseconds: 800),(){
-        finished(context, _timeFormat, steps.toString(),_timeFormat);
+      newDuration= hours*360 + minutes*60 + seconds;
+      Future.delayed(Duration(milliseconds: 800),()async{
+        if(score.duration > newDuration){
+          setState(() {
+            bestDuration = newDuration;
+          });
+          gameInfo score = gameInfo(isLocked: 0, row: row, duration: bestDuration, steps: steps);
+          await localDB(tableName: "SCORE").updateScore(score);
+          gameInfo scoreP = gameInfo(isLocked: 0, row: row+1, duration: 0, steps: 0);
+          await localDB(tableName: "SCORE").updateScore(scoreP);
+        }
+        
+        finished(context, _timeFormat, steps,_formatTime(bestDuration));
         setState(() {
           isFinished.value = true;
-
         });
       });
     }
