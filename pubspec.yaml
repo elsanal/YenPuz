@@ -28,7 +28,8 @@ dependencies:
   rflutter_alert: ^2.0.2
   soundpool: ^2.1.0
   sqflite: ^2.0.0+3
-  firebase_admob: ^0.11.2
+#  firebase_admob: ^0.11.2
+  google_mobile_ads: ^0.13.0
   flutter_admob_app_open: ^1.0.4
 
 

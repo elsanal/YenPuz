@@ -1,9 +1,9 @@
 //@dart=2.9
 import 'dart:async';
-import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:soundpool/soundpool.dart';
 import 'package:yenpuz/Database/admob.dart';
@@ -27,10 +27,8 @@ class GameBoard extends StatefulWidget {
 
 class _GameBoardState extends State<GameBoard> {
 
-  int row = 0; int size = 0;
-  int bestDuration = 0;
-  double fontSize = 0;
-   gameInfo score;
+  int row = 0; int size = 0;int bestDuration = 0;
+  double fontSize = 0;gameInfo score;Future<int> _soundId ;
   ValueNotifier<List> originalList = ValueNotifier([]);
   ValueNotifier<List> randomList = ValueNotifier([]);
   ValueNotifier<bool> isFinished = ValueNotifier(false);
@@ -41,12 +39,13 @@ class _GameBoardState extends State<GameBoard> {
   Timer _timer = Timer(Duration(seconds: 0),(){});
   Soundpool _soundPool = Soundpool.fromOptions(
       options: SoundpoolOptions(streamType: StreamType.ring));
-   Future<int> _soundId ;
+  BannerAd _bannerAd = Admob().myBannerAd;
 
 
   @override
   void initState() {
     // TODO: implement initState
+    _bannerAd..load();
     score = widget.score;
     row = score.row;
     size = row*row;
@@ -62,6 +61,7 @@ class _GameBoardState extends State<GameBoard> {
   void dispose(){
     _timer.cancel();
     _soundPool.dispose();
+    _bannerAd..dispose();
     super.dispose();
   }
 
@@ -82,7 +82,6 @@ class _GameBoardState extends State<GameBoard> {
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
-    Admob().myBannerAd..show(anchorType: AnchorType.bottom);
     return Scaffold(
       backgroundColor: Colors.red[900],
       body: SafeArea(
@@ -108,7 +107,10 @@ class _GameBoardState extends State<GameBoard> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     new InkWell(
-                      onTap:()=>Navigator.of(context).pop(true),
+                      onTap:(){
+                        Admob().myVideoAdLoading();
+                        Navigator.of(context).pop(true);
+                      },
                       child: Card(
                         color: Colors.red.withOpacity(0.3),
                         child: Container(
@@ -290,6 +292,16 @@ class _GameBoardState extends State<GameBoard> {
                       );
                     }),
               ),
+            ),
+            Positioned(
+                bottom: ScreenUtil().setHeight(00),
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: ScreenUtil().setHeight(130),
+                  width: width,
+                  child: AdWidget(ad: _bannerAd),
+                )
             )
           ],),
         ),
@@ -373,10 +385,15 @@ class _GameBoardState extends State<GameBoard> {
           setState(() {
             bestDuration = newDuration;
           });
-          gameInfo score = gameInfo(isLocked: 0, row: row, duration: bestDuration, steps: steps);
-          await localDB(tableName: "SCORE").updateScore(score);
-          gameInfo scoreP = gameInfo(isLocked: 0, row: row+1, duration: 0, steps: 0);
-          await localDB(tableName: "SCORE").updateScore(scoreP);
+          Future.delayed(Duration(milliseconds: 500),()async{
+            gameInfo score = gameInfo(isLocked: 0, row: row, duration: bestDuration, steps: steps);
+            await localDB(tableName: "SCORE").updateScore(score);
+          });
+
+          Future.delayed(Duration(milliseconds: 500),()async{
+            gameInfo scoreP = gameInfo(isLocked: 0, row: (row+1).toInt(), duration: 0, steps: 0);
+            await localDB(tableName: "SCORE").updateScore(scoreP);
+          });
         }
         
         finished(context, _timeFormat, steps,_formatTime(bestDuration));

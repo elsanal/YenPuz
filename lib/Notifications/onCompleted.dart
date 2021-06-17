@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:yenpuz/Database/admob.dart';
 import 'package:yenpuz/Decoration.dart';
 
 
  finished(BuildContext context,String newDuration, int steps, String bestDuration){
    var height = MediaQuery.of(context).size.height;
    var width = MediaQuery.of(context).size.width;
+   Admob().myVideoAdLoading();
   return Alert(
     title: "Congratulation!!!",
     context: context,

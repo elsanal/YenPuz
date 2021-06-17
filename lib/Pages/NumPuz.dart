@@ -1,7 +1,7 @@
 //@dart=2.9
-import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:yenpuz/Database/admob.dart';
 import 'package:yenpuz/Database/gameClass.dart';
 import 'package:yenpuz/Decoration.dart';
@@ -18,22 +18,28 @@ class NumPuz extends StatefulWidget {
 class _NumPuzState extends State<NumPuz> {
 
   List<gameInfo> scores = [];
+  BannerAd _bannerAd = Admob().myBannerAd;
 
   @override
   void initState() {
     // TODO: implement initState
     scores = widget.scores;
-    Admob().myBannerAd..load();
+    _bannerAd..load();
     super.initState();
   }
 
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _bannerAd..dispose();
+    super.dispose();
+  }
   @override
 
   @override
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
-    Admob().myBannerAd..show(anchorType: AnchorType.bottom);
     return Scaffold(
       appBar: AppBar(
         title: Text("YenPuz", style:homeStyle),
@@ -54,17 +60,40 @@ class _NumPuzState extends State<NumPuz> {
           )
         ),
         padding: EdgeInsets.only(top: ScreenUtil().setHeight(20)),
-        child: new GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: ScreenUtil().setWidth(20),
-              mainAxisSpacing: ScreenUtil().setHeight(20),
-              childAspectRatio: 3
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: height,
+                width: width,
+                child: new GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: ScreenUtil().setWidth(20),
+                      mainAxisSpacing: ScreenUtil().setHeight(20),
+                      childAspectRatio: 3
+                    ),
+                    itemCount: scores.length,
+                    itemBuilder: (context,index){
+                      return matrix(context,scores[index]);
+                    }
+                ),
+              ),
             ),
-            itemCount: scores.length,
-            itemBuilder: (context,index){
-              return matrix(context,scores[index]);
-            }
+            Positioned(
+                bottom: ScreenUtil().setHeight(00),
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: ScreenUtil().setHeight(130),
+                  width: width,
+                  child: AdWidget(ad: _bannerAd),
+                )
+            )
+          ],
         ),
 
       ),
