@@ -21,7 +21,7 @@ class localDB{
       onCreate: (Database dB, int version){
         print("created");
         return dB.execute("CREATE TABLE $tableName("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+            "id INTEGER,"
             "row INTEGER,"
             "steps INTEGER,"
             "duration INTEGER,"
@@ -52,13 +52,25 @@ class localDB{
       gameInfo myScore = gameInfo.fromJson(score);
       scores.add(myScore);
     });
+    print("Got data from table : $tableName");
     return scores;
+  }
+  Future<gameInfo> retrieveOneScore(int id)async{
+    var request  = await init(500);
+    Map<String, dynamic> score = await request.query('$tableName',where:"id = ?",whereArgs:[id]);
+    gameInfo myScore = gameInfo.fromJson(score);
+    print("Got data from table : $tableName");
+    return myScore;
   }
 
   /// update the scores
-  Future updateScore(gameInfo score)async{
-    var req = await db;
-    await req.update("$tableName",score.toMap(), where: "row = ?", whereArgs: [score.row]);
+  Future updateScore(List<gameInfo> scores)async{
+    var request  = await init(500);
+    for(int i = 0; i<scores.length;i++){
+      await request.update("$tableName",scores[i].toMap(),
+          where: "id = ?", whereArgs: [scores[i].id],conflictAlgorithm: ConflictAlgorithm.replace,);
+      print("Update of element ID : ${scores[i].id} $tableName");
+    }
   }
 
 }

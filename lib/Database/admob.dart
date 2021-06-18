@@ -24,6 +24,9 @@ class Admob{
         request: _adRequest,
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (RewardedAd ad) {
+            ad.show(onUserEarnedReward: (RewardedAd ad, RewardItem rewardItem){
+              print("Thank you for watching");
+            });
             // Keep a reference to the ad so you can show it later.
             myReward = ad;
           },

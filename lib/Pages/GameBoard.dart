@@ -165,14 +165,16 @@ class _GameBoardState extends State<GameBoard> {
                         new Text(_timeFormat,style: boardTimerStyle,),
                       ],
                     ):InkWell(
-                      onTap: (){
+                      onTap: ()async{
 
                         setState(() {
                           randomList.value.clear();
                           originalList.value.clear();
                           isFinished.value = false;
+                          minutes = hours = seconds = steps=0;
                         });
                         _matrixGenerator();
+                        score = await localDB().retrieveOneScore(score.id);
                         startTimer();
                         print(randomList.value);
                       },
@@ -250,7 +252,7 @@ class _GameBoardState extends State<GameBoard> {
                       }
                       return InkWell(
                         onTap: (){
-                        _stateController(index);
+                        _stateController(index,score.id);
                         },
                         child: Draggable(
                           data: index,
@@ -286,7 +288,7 @@ class _GameBoardState extends State<GameBoard> {
                             ),
                           ),
                           onDragStarted: (){
-                           _stateController(index);
+                           _stateController(index,score.id);
                           },
                         ),
                       );
@@ -294,11 +296,11 @@ class _GameBoardState extends State<GameBoard> {
               ),
             ),
             Positioned(
-                bottom: ScreenUtil().setHeight(00),
+                bottom: ScreenUtil().setHeight(20),
                 left: 0,
                 right: 0,
                 child: Container(
-                  height: ScreenUtil().setHeight(130),
+                  height: ScreenUtil().setHeight(150),
                   width: width,
                   child: AdWidget(ad: _bannerAd),
                 )
@@ -356,22 +358,27 @@ class _GameBoardState extends State<GameBoard> {
   /// time format
   
   String _formatTime(int duration){
-    var hr ;
-    var mn ;
-    var ss ;
-    hr = (duration~/360).toInt();
-    mn = ((duration - (hr*360))~/60).toInt();
-    ss = duration - ((mn*60) + (hr*360));
-    
-    hr = hr<10?"0$hr:":"$hr:";
-    mn = mn<10?"0$mn:":"$mn:";
-    ss = ss<10?"0$ss":"$ss";
-    
-    return (hr + mn + ss);
+    int hr =0;
+    int mn =0;
+    int ss =0;
+    String hour = '';
+    String minute = '';
+    String second = '';
+
+    setState(() {
+      hr = (duration~/360).toInt();
+      mn = ((duration - (hr*360))~/60).toInt();
+      ss = duration - ((mn*60) + (hr*360));
+      hour = hr<10?"0$hr:":"$hr:";
+      minute = mn<10?"0$mn:":"$mn:";
+      second = ss<10?"0$ss":"$ss";
+    });
+
+    return (hour + minute + second);
   }
 
   /// Check the different conditions
-  _stateController(int index)async{
+  _stateController(int index, int id)async{
     setState(() {
       newIndex = moveValidation(index, row, randomList);
     });
@@ -380,22 +387,17 @@ class _GameBoardState extends State<GameBoard> {
     if(isCompleted){
       _timer.cancel();
       newDuration= hours*360 + minutes*60 + seconds;
-      Future.delayed(Duration(milliseconds: 800),()async{
-        if(score.duration > newDuration){
-          setState(() {
-            bestDuration = newDuration;
-          });
-          Future.delayed(Duration(milliseconds: 500),()async{
-            gameInfo score = gameInfo(isLocked: 0, row: row, duration: bestDuration, steps: steps);
-            await localDB(tableName: "SCORE").updateScore(score);
-          });
-
-          Future.delayed(Duration(milliseconds: 500),()async{
-            gameInfo scoreP = gameInfo(isLocked: 0, row: (row+1).toInt(), duration: 0, steps: 0);
-            await localDB(tableName: "SCORE").updateScore(scoreP);
-          });
-        }
-        
+      if((score.duration > newDuration)||(score.duration == 0)){
+        setState(() {
+          bestDuration = newDuration;
+        });
+        List<gameInfo> scores = [
+          gameInfo(id : id,isLocked: 0, row: row, duration: bestDuration, steps: steps),
+          gameInfo(id : (id+1).toInt(),isLocked: 0, row: (row+1).toInt(), duration: 0, steps: 0)
+        ];
+        await localDB(tableName: "SCORE").updateScore(scores);
+      }
+      Future.delayed(Duration(milliseconds: 900),()async{
         finished(context, _timeFormat, steps,_formatTime(bestDuration));
         setState(() {
           isFinished.value = true;

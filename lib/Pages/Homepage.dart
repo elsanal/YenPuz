@@ -24,15 +24,6 @@ class _HomepageState extends State<Homepage> {
   List<gameInfo> scores = [];
   BannerAd _bannerAd = Admob().myBannerAd;
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    getScores();
-    _bannerAd..load();
-    super.initState();
-  }
-
-
   getScores()async{
     scores = await localDB(tableName: "SCORE").retrieveScore();
     if(scores.length==0){
@@ -41,13 +32,25 @@ class _HomepageState extends State<Homepage> {
           isLocked: i==3?0:1,
           duration: 0,
           row: i,
-          steps: 0
+          steps: 0,
+          id: (i-3)
         );
         scores.add(score);
         await localDB(tableName: "SCORE").saveScore(score);
       }
     }
+    print(scores);
   }
+  @override
+  void initState() {
+    // TODO: implement initState
+    getScores();
+    Admob().myInterstitialAd();
+    _bannerAd..load();
+    super.initState();
+  }
+
+
   @override
   void dispose() {
     // TODO: implement dispose
@@ -86,10 +89,7 @@ class _HomepageState extends State<Homepage> {
                                 style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.white)),
                                 child: Text('yes',style: homeStyle.copyWith(color: Colors.black87, fontSize: ScreenUtil().setSp(60))),
                                 onPressed: ()async{
-                                  await Admob().myInterstitialAd();
-                                  Future.delayed(Duration(seconds: 3),(){
-                                    return Navigator.of(context).pop(true);
-                                  });
+                                  return Navigator.of(context).pop(true);
                                 },),
                               ElevatedButton(
                                   style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.white)),
@@ -216,11 +216,11 @@ class _HomepageState extends State<Homepage> {
                  ),
                ),
                Positioned(
-                 bottom: ScreenUtil().setHeight(00),
+                 bottom: ScreenUtil().setHeight(20),
                    left: 0,
                    right: 0,
                    child: Container(
-                     height: ScreenUtil().setHeight(130),
+                     height: ScreenUtil().setHeight(150),
                      width: width,
                      child: AdWidget(ad: _bannerAd),
                    )
