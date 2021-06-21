@@ -68,10 +68,4 @@ class _CountUpTimerState extends State<CountUpTimer> {
   }
 }
 
-class Count{
 
-  startCount(){
-
-  }
-
-}

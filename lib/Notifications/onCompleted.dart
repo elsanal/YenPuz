@@ -9,7 +9,8 @@ import 'package:yenpuz/Decoration.dart';
    var height = MediaQuery.of(context).size.height;
    var width = MediaQuery.of(context).size.width;
    Admob().myVideoAdLoading();
-  return Alert(
+   bool isReplay = true;
+  Alert(
     title: "Congratulation!!!",
     context: context,
     style: AlertStyle(
@@ -20,8 +21,18 @@ import 'package:yenpuz/Decoration.dart';
     buttons: [
       DialogButton(
         color: Colors.white.withOpacity(0.5),
-          child: Text("Ok",style: alertFinishedTitleStyle,),
-          onPressed: ()=>Navigator.of(context).pop(true))
+          child: Text("Replay",style: alertFinishedTitleStyle,),
+          onPressed: (){
+            isReplay = true;
+            Navigator.of(context).pop(true);
+          }),
+      DialogButton(
+          color: Colors.white.withOpacity(0.5),
+          child: Text("Next",style: alertFinishedTitleStyle,),
+          onPressed: (){
+            isReplay = false;
+            Navigator.of(context).pop(true);
+          }),
     ],
     content: Container(
       height: height*(2/5),
@@ -39,4 +50,5 @@ import 'package:yenpuz/Decoration.dart';
       ),
     ),
   )..show();
+  return isReplay;
 }

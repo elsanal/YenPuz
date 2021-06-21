@@ -10,6 +10,7 @@ import 'package:yenpuz/Database/admob.dart';
 import 'package:yenpuz/Database/gameClass.dart';
 import 'package:yenpuz/Database/sqflite.dart';
 import 'package:yenpuz/Decoration.dart';
+import 'package:yenpuz/Notifications/nextVersion.dart';
 import 'package:yenpuz/Pages/NumPuz.dart';
 
 class Homepage extends StatefulWidget {
@@ -62,6 +63,7 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
+    getScores();
     return Scaffold(
       appBar: AppBar(
         title: Text("YenPuz", style:homeStyle),
@@ -211,16 +213,19 @@ class _HomepageState extends State<Homepage> {
                    height: width/2.1,
                    color: Colors.transparent,
                    margin: EdgeInsets.all(ScreenUtil().setHeight(10)),
-                   child: Icon(Icons.lock_outline,color: Colors.red,
-                     size: ScreenUtil().setHeight(width),),
+                   child: InkWell(
+                     onTap: ()=>NextVersion(context),
+                     child: Icon(Icons.lock_outline,color: Colors.red,
+                       size: ScreenUtil().setHeight(width),),
+                   ),
                  ),
                ),
                Positioned(
-                 bottom: ScreenUtil().setHeight(20),
+                 bottom: ScreenUtil().setHeight(10.0),
                    left: 0,
                    right: 0,
                    child: Container(
-                     height: ScreenUtil().setHeight(150),
+                     height: ScreenUtil().setHeight(250),
                      width: width,
                      child: AdWidget(ad: _bannerAd),
                    )

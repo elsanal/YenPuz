@@ -13,22 +13,25 @@ import 'package:yenpuz/Decoration.dart';
 import 'package:yenpuz/Logic/gameCompleted.dart';
 import 'package:yenpuz/Logic/gameLogic.dart';
 import 'package:yenpuz/Notifications/Sound.dart';
-import 'package:yenpuz/Notifications/Timer.dart';
-import 'package:yenpuz/Notifications/onCompleted.dart';
+import 'package:yenpuz/Notifications/help.dart';
+import 'package:yenpuz/Pages/NumPuz.dart';
 
 class GameBoard extends StatefulWidget {
   double fontSize;
   gameInfo score;
-  GameBoard({this.fontSize, this.score});
-
+  int index;
+  GameBoard({this.fontSize, this.score,this.index});
   @override
   _GameBoardState createState() => _GameBoardState();
 }
 
+
+
 class _GameBoardState extends State<GameBoard> {
 
-  int row = 0; int size = 0;int bestDuration = 0;
-  double fontSize = 0;gameInfo score;Future<int> _soundId ;
+  int row = 0; int size = 0;int bestDuration = 0; int id = 0;
+  double fontSize = 0;gameInfo score; int levelIndex = 0;
+  Future<int> _soundId;
   ValueNotifier<List> originalList = ValueNotifier([]);
   ValueNotifier<List> randomList = ValueNotifier([]);
   ValueNotifier<bool> isFinished = ValueNotifier(false);
@@ -36,6 +39,8 @@ class _GameBoardState extends State<GameBoard> {
 
   int newIndex = 0; int steps = 0; String time = '';
   int seconds = 0; int minutes = 0; int hours = 0;
+  List<gameInfo> scores = [];
+  // bool isReplay = true;
   Timer _timer = Timer(Duration(seconds: 0),(){});
   Soundpool _soundPool = Soundpool.fromOptions(
       options: SoundpoolOptions(streamType: StreamType.ring));
@@ -45,16 +50,16 @@ class _GameBoardState extends State<GameBoard> {
   @override
   void initState() {
     // TODO: implement initState
-    _bannerAd..load();
     score = widget.score;
+    levelIndex = widget.index;
     row = score.row;
-    size = row*row;
+    id = score.id;
     bestDuration = score.duration;
     fontSize = widget.fontSize;
-    _matrixGenerator();
+    _matrixGenerator(row);
     startTimer();
     _soundId = loadSound();
-    Admob().myBannerAd..load();
+    _bannerAd..load();
     super.initState();
   }
 
@@ -65,8 +70,8 @@ class _GameBoardState extends State<GameBoard> {
     super.dispose();
   }
 
-  _matrixGenerator(){
-    for(int i=1; i<=size;i++){
+  _matrixGenerator(int row){
+    for(int i=1; i<=(row*row);i++){
       originalList.value.add(i);
       randomList.value.add(i);
     }
@@ -82,6 +87,9 @@ class _GameBoardState extends State<GameBoard> {
   Widget build(BuildContext context) {
     var height = MediaQuery.of(context).size.height;
     var width = MediaQuery.of(context).size.width;
+    if((scores.length == 0)||(isFinished.value == true)){
+      getScores();
+    }
     return Scaffold(
       backgroundColor: Colors.red[900],
       body: SafeArea(
@@ -107,9 +115,14 @@ class _GameBoardState extends State<GameBoard> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     new InkWell(
-                      onTap:(){
+                      onTap:()async{
+                        getScores();
                         Admob().myVideoAdLoading();
-                        Navigator.of(context).pop(true);
+                        Future.delayed(Duration(milliseconds: 500),(){
+                          Navigator.pushReplacement(context, new MaterialPageRoute(
+                              builder: (context)=>NumPuz(scores: scores,)));
+                        });
+
                       },
                       child: Card(
                         color: Colors.red.withOpacity(0.3),
@@ -155,7 +168,7 @@ class _GameBoardState extends State<GameBoard> {
                   child: CircleAvatar(
                     radius: ScreenUtil().setWidth(150),
                     backgroundColor: Colors.redAccent[200],
-                    child: !isFinished.value?Column(
+                    child: isFinished.value==false?Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -166,17 +179,7 @@ class _GameBoardState extends State<GameBoard> {
                       ],
                     ):InkWell(
                       onTap: ()async{
-
-                        setState(() {
-                          randomList.value.clear();
-                          originalList.value.clear();
-                          isFinished.value = false;
-                          minutes = hours = seconds = steps=0;
-                        });
-                        _matrixGenerator();
-                        score = await localDB().retrieveOneScore(score.id);
-                        startTimer();
-                        print(randomList.value);
+                        await _replay(true);
                       },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -221,7 +224,25 @@ class _GameBoardState extends State<GameBoard> {
                 ),
               )
             ),
-
+            Positioned(
+                top: ScreenUtil().setHeight(180),
+                left: ScreenUtil().setHeight(45),
+                child: Card(
+                  color: Colors.red.withOpacity(0.3),
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      top: ScreenUtil().setHeight(20),
+                      bottom: ScreenUtil().setHeight(20),
+                      left: ScreenUtil().setHeight(40),
+                      right: ScreenUtil().setHeight(40),
+                    ),
+                    child: InkWell(
+                      onTap: ()=>Help(context, row),
+                      child: Text("Help",style:boardTimerStyle,),
+                    ),
+                  ),
+                )
+            ),
             Positioned(
               top: ScreenUtil().setHeight(550),
               left: ScreenUtil().setWidth(0),
@@ -246,13 +267,12 @@ class _GameBoardState extends State<GameBoard> {
                     ),
                     itemCount: randomList.value.length,
                     itemBuilder: (context,index){
-
                       if(randomList.value[index]==(randomList.value.length)){
                         return Container();
                       }
                       return InkWell(
                         onTap: (){
-                        _stateController(index,score.id);
+                        _stateController(index,id);
                         },
                         child: Draggable(
                           data: index,
@@ -288,7 +308,7 @@ class _GameBoardState extends State<GameBoard> {
                             ),
                           ),
                           onDragStarted: (){
-                           _stateController(index,score.id);
+                           _stateController(index,id);
                           },
                         ),
                       );
@@ -296,11 +316,11 @@ class _GameBoardState extends State<GameBoard> {
               ),
             ),
             Positioned(
-                bottom: ScreenUtil().setHeight(20),
+                bottom: ScreenUtil().setHeight(10.0),
                 left: 0,
                 right: 0,
                 child: Container(
-                  height: ScreenUtil().setHeight(150),
+                  height: ScreenUtil().setHeight(250),
                   width: width,
                   child: AdWidget(ad: _bannerAd),
                 )
@@ -312,11 +332,11 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   /// Make the exchange of the items
-  void _replace(int index, int newIndex){
+  void _replace(int itemIndex, int newIndex){
     int temp = 0;
     setState(() {
-      temp = randomList.value[index];
-      randomList.value[index] = randomList.value[newIndex];
+      temp = randomList.value[itemIndex];
+      randomList.value[itemIndex] = randomList.value[newIndex];
       randomList.value[newIndex] = temp;
     });
   }
@@ -324,10 +344,11 @@ class _GameBoardState extends State<GameBoard> {
   /// Start the up counter
  String _timeFormat = '00:00:00';
   int newDuration = 0;
-  String hr = '00';
-  String mn = '00';
-  String ss = '00';
+
   startTimer() {
+    String hr = '00';
+    String mn = '00';
+    String ss = '00';
     const oneSec = const Duration(seconds: 1);
     _timer = new Timer.periodic(
       oneSec,
@@ -356,7 +377,7 @@ class _GameBoardState extends State<GameBoard> {
   }
   
   /// time format
-  
+
   String _formatTime(int duration){
     int hr =0;
     int mn =0;
@@ -378,12 +399,12 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   /// Check the different conditions
-  _stateController(int index, int id)async{
+  _stateController(int itemIndex, int id)async{
     setState(() {
-      newIndex = moveValidation(index, row, randomList);
+      newIndex = moveValidation(itemIndex, row, randomList);
     });
-    _replace(index, newIndex);
-    bool isCompleted = completed(context,size, randomList, originalList);
+    _replace(itemIndex, newIndex);
+    bool isCompleted = completed(context,(row*row), randomList, originalList);
     if(isCompleted){
       _timer.cancel();
       newDuration= hours*360 + minutes*60 + seconds;
@@ -397,19 +418,111 @@ class _GameBoardState extends State<GameBoard> {
         ];
         await localDB(tableName: "SCORE").updateScore(scores);
       }
-      Future.delayed(Duration(milliseconds: 900),()async{
-        finished(context, _timeFormat, steps,_formatTime(bestDuration));
+      Future.delayed(Duration(milliseconds: 500),()async{
         setState(() {
           isFinished.value = true;
+          _finished(context, _timeFormat,steps,_formatTime(bestDuration));
         });
       });
     }
-    if(index!=newIndex){
+    if(itemIndex!=newIndex){
       setState(() {
         steps+=1;
       });
       await Sound(soundId: _soundId, soundpool: _soundPool,).playSound();
     }
+  }
+
+  Future _replay(bool isReplay)async{
+    setState(() {
+      minutes =0;hours =0;seconds =0;steps=0;
+      _timeFormat = '00:00:00';
+      isFinished.value = false;
+    });
+    if(isReplay == true){
+      randomList.value.clear();
+      originalList.value.clear();
+      _matrixGenerator(row);
+      startTimer();
+      score = scores[levelIndex];
+    }else if(isReplay == false){
+      if(levelIndex<10){
+        row +=1;
+        levelIndex +=1;
+        id +=1;
+      }
+      fontSize = (900/score.row);
+      randomList.value.clear();
+      originalList.value.clear();
+      _matrixGenerator((row).toInt());
+      startTimer();
+      score = scores[levelIndex];
+    }
+
+  }
+
+  getScores()async{
+    scores = await localDB(tableName: "SCORE").retrieveScore();
+    print(scores);
+  }
+
+  _finished(BuildContext context,String newDuration,
+      int steps, String bestDuration){
+    var height = MediaQuery.of(context).size.height;
+    var width = MediaQuery.of(context).size.width;
+    Admob().myVideoAdLoading();
+    isFinished.value = true;
+    Alert(
+      title: "Congratulation!!!",
+      context: context,
+      onWillPopActive: false,
+      style: AlertStyle(
+          backgroundColor: Colors.white.withOpacity(0.1),
+          titleStyle: alertFinishedTitleStyle,
+          descStyle: alertFinishedStyle
+      ),
+      buttons: [
+        DialogButton(
+            color: Colors.white.withOpacity(0.5),
+            child: Text("Replay",style: alertFinishedTitleStyle,),
+            onPressed: (){
+              setState(() {
+                _timeFormat = '00:00:00';
+                isFinished.value = false;
+              });
+              _replay(true);
+              startTimer();
+              Navigator.of(context).pop(true);
+            }),
+        DialogButton(
+            color: Colors.white.withOpacity(0.5),
+            child: Text("Next",style: alertFinishedTitleStyle,),
+            onPressed: (){
+              setState(() {
+                isFinished.value = false;
+                _timeFormat = '00:00:00';
+              });
+              _replay(false);
+              startTimer();
+              Navigator.of(context).pop(true);
+            }),
+      ],
+      content: Container(
+        height: height*(2/5),
+        width: width,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            new Icon(Icons.emoji_events_sharp,
+              size: ScreenUtil().setHeight(400),color: Colors.amber,),
+            new Text("Steps : "+steps.toString(),style: alertFinishedStyle,),
+            new Text("Time : "+newDuration.toString(),style: alertFinishedStyle,),
+            new Text("Best time : "+bestDuration.toString(),style: alertFinishedStyle,),
+          ],
+        ),
+      ),
+    )..show();
   }
 
 }
